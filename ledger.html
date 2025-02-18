@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Ledger</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="navigation-links no-print">
+        <a href="index.html"><button>Back to Tracker</button></a>
+        <a href="analytics.html"><button>View Analytics</button></a>
+        <button onclick="window.print()">Print Ledger</button>
+    </div>
+
+    <div class="ledger-container">
+        <div class="ledger-header">
+            <div class="ledger-title">Financial Ledger</div>
+            <div class="ledger-filters no-print">
+                <div class="date-range">
+                    <label for="start-date">From:</label>
+                    <input type="date" id="start-date">
+                    <label for="end-date">To:</label>
+                    <input type="date" id="end-date">
+                </div>
+                <select id="category-filter">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+        </div>
+
+        <table class="ledger-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Reference</th>
+                    <th>Debit (₹)</th>
+                    <th>Credit (₹)</th>
+                    <th>Balance (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="ledger-body"></tbody>
+        </table>
+    </div>
+</body>
+</html>

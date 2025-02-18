@@ -1,10 +1,11 @@
 body {
     font-family: Arial, sans-serif;
-    max-width: 900px;
+    max-width: 1200px;  /* Increased from 900px */
     margin: 0 auto;
     padding: 20px;
     background-color: #f5f5f5;
 }
+
 h1 {
     text-align: center;
     color: #333;
@@ -233,5 +234,318 @@ th {
     .period-selector {
         width: 100%;
         justify-content: center;
+    }
+}
+
+
+.ledger-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.ledger-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ledger-title {
+    font-size: 1.5em;
+    color: #333;
+}
+
+.ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.ledger-table th {
+    background-color: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.ledger-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.running-balance {
+    font-weight: bold;
+}
+
+.debit {
+    color: #c62828;
+}
+
+.credit {
+    color: #2e7d32;
+}
+
+.period-summary {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.navigation-links {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;  /* Center the buttons horizontally */
+    gap: 15px;  /* Space between buttons */
+    align-items: center;
+}
+
+/* Style the buttons consistently */
+.navigation-links button,
+.navigation-links a button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.navigation-links button:hover,
+.navigation-links a button:hover {
+    background-color: #45a049;
+}
+
+/* Ensure links don't have default styling */
+.navigation-links a {
+    text-decoration: none;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 600px) {
+    .navigation-links {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .navigation-links button,
+    .navigation-links a button {
+        width: 100%;
+    }
+}
+.ledger-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.date-range {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Media queries for responsive design */
+@media screen and (max-width: 768px) {
+    .ledger-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .ledger-filters {
+        flex-direction: column;
+    }
+
+    .date-range {
+        flex-wrap: wrap;
+    }
+
+    .date-range input {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none;
+    }
+    
+    body {
+        padding: 0;
+        background: white;
+    }
+    
+    .ledger-container {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .ledger-table th {
+        background-color: #fff !important;
+        color: #000;
+    }
+
+    .period-summary {
+        background-color: #fff !important;
+        border-top: 2px solid #000;
+    }
+}
+
+
+/* Settings page specific styles */
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.settings-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}
+
+.settings-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+    color: #333;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.category-management {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.category-type {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.category-type h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+.category-list {
+    margin-bottom: 15px;
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.category-add {
+    display: flex;
+    gap: 10px;
+}
+
+.category-add input {
+    flex: 1;
+}
+
+.warning-btn {
+    background-color: #ff9800;
+}
+
+.warning-btn:hover {
+    background-color: #f57c00;
+}
+
+.danger-btn {
+    background-color: #f44336;
+}
+
+.danger-btn:hover {
+    background-color: #d32f2f;
+}
+
+.warning-text {
+    color: #f57c00;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+body.dark-mode .settings-container {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .settings-section {
+    border-color: #404040;
+}
+
+body.dark-mode .settings-section h2 {
+    border-bottom-color: #404040;
+    color: #fff;
+}
+
+body.dark-mode .category-type {
+    background-color: #404040;
+}
+
+body.dark-mode .category-item {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #fff;
+}
+
+body.dark-mode input[type="text"] {
+    background-color: #404040;
+    border-color: #555;
+    color: #fff;
+}
+
+/* Responsive design */
+@media screen and (max-width: 768px) {
+    .category-management {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-container {
+        padding: 15px;
+    }
+    
+    .settings-section {
+        padding: 15px;
     }
 }
