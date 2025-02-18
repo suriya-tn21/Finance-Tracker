@@ -126,3 +126,72 @@ th {
     color: white;
     border-color: #4CAF50;
 }
+
+/* Media queries for responsive design */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .form-group {
+        min-width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .summary {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .filters {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .toggle-buttons {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .edit-btn, .delete-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    h1 {
+        font-size: 24px;
+    }
+    
+    .summary-value {
+        font-size: 18px;
+    }
+    
+    th, td {
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    .toggle-btn {
+        padding: 8px;
+        font-size: 12px;
+    }
+}
