@@ -195,3 +195,43 @@ th {
         font-size: 12px;
     }
 }
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.period-selector {
+    display: flex;
+    gap: 10px;
+}
+
+@media screen and (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+        padding: 10px;
+    }
+    
+    .navigation {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .period-selector {
+        width: 100%;
+        justify-content: center;
+    }
+}

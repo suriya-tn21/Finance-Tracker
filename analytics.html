@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Income & Expense Analytics</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="navigation">
+        <h1>Income & Expense Analytics</h1>
+        <div class="period-selector">
+            <button id="week-btn" class="toggle-btn">Week</button>
+            <button id="month-btn" class="toggle-btn active">Month</button>
+            <button id="year-btn" class="toggle-btn">Year</button>
+            <button id="all-btn" class="toggle-btn">All Time</button>
+        </div>
+        <a href="index.html"><button>Back to Tracker</button></a>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="analytics-chart"></canvas>
+    </div>
+    
+    <div class="summary">
+        <div class="summary-item">
+            <div>Total Income</div>
+            <div class="summary-value income" id="total-income">$0.00</div>
+        </div>
+        <div class="summary-item">
+            <div>Total Expenses</div>
+            <div class="summary-value expense" id="total-expenses">$0.00</div>
+        </div>
+        <div class="summary-item">
+            <div>Net Balance</div>
+            <div class="summary-value balance" id="balance">$0.00</div>
+        </div>
+    </div>
+</body>
+</html>

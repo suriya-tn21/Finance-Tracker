@@ -333,3 +333,256 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the database and render transactions
     DB.init();
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const weekBtn = document.getElementById('week-btn');
+    const monthBtn = document.getElementById('month-btn');
+    const yearBtn = document.getElementById('year-btn');
+    const allTimeBtn = document.getElementById('all-btn');
+    const totalIncomeElement = document.getElementById('total-income');
+    const totalExpensesElement = document.getElementById('total-expenses');
+    const balanceElement = document.getElementById('balance');
+    
+    // Chart.js config
+    let chart = null;
+    
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDP_A477cu_IDUwthm2oM7_NBOuDDJJ4ME",
+        authDomain: "expense-app-95265.firebaseapp.com",
+        databaseURL: "https://expense-app-95265-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "expense-app-95265",
+        storageBucket: "expense-app-95265.firebasestorage.app",
+        messagingSenderId: "269273944121",
+        appId: "1:269273944121:web:64e560fa508fe40c5afde8",
+        measurementId: "G-MSH6H75HT3"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    // Load data and initialize chart
+    let transactions = [];
+    database.ref('transactions').on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        transactions = Object.values(data);
+        
+        // Default view is monthly
+        renderChart('month');
+    });
+    
+    // Helper functions for date operations
+    function getLastWeekDate() {
+        const date = new Date();
+        date.setDate(date.getDate() - 7);
+        return date;
+    }
+    
+    function getLastMonthDate() {
+        const date = new Date();
+        date.setMonth(date.getMonth() - 1);
+        return date;
+    }
+    
+    function getLastYearDate() {
+        const date = new Date();
+        date.setFullYear(date.getFullYear() - 1);
+        return date;
+    }
+    
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+    
+    // Aggregate data by period
+    function aggregateDataByPeriod(period) {
+        let startDate;
+        const today = new Date();
+        const dataMap = new Map();
+        
+        switch(period) {
+            case 'week':
+                startDate = getLastWeekDate();
+                break;
+            case 'month':
+                startDate = getLastMonthDate();
+                break;
+            case 'year':
+                startDate = getLastYearDate();
+                break;
+            case 'all':
+                startDate = new Date(0); // Beginning of time
+                break;
+        }
+        
+        // Filter transactions by date
+        const filteredTransactions = transactions.filter(t => 
+            new Date(t.date) >= startDate && new Date(t.date) <= today
+        );
+        
+        // Determine how to group dates based on period
+        let dateFormat;
+        if (period === 'week') {
+            dateFormat = (date) => formatDate(date); // Daily for week
+        } else if (period === 'month') {
+            dateFormat = (date) => formatDate(date); // Daily for month
+        } else if (period === 'year') {
+            dateFormat = (date) => date.toISOString().substring(0, 7); // Monthly for year
+        } else {
+            dateFormat = (date) => date.toISOString().substring(0, 7); // Monthly for all time
+        }
+        
+        // Group transactions by date
+        filteredTransactions.forEach(t => {
+            const date = new Date(t.date);
+            const formattedDate = dateFormat(date);
+            
+            if (!dataMap.has(formattedDate)) {
+                dataMap.set(formattedDate, { income: 0, expense: 0 });
+            }
+            
+            const entry = dataMap.get(formattedDate);
+            if (t.type === 'income') {
+                entry.income += parseFloat(t.amount);
+            } else {
+                entry.expense += parseFloat(t.amount);
+            }
+        });
+        
+        // Sort dates
+        const sortedDates = Array.from(dataMap.keys()).sort();
+        
+        // Generate labels and datasets
+        const labels = sortedDates;
+        const incomeData = sortedDates.map(date => dataMap.get(date).income);
+        const expenseData = sortedDates.map(date => dataMap.get(date).expense);
+        
+        // Calculate summary
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        
+        dataMap.forEach(entry => {
+            totalIncome += entry.income;
+            totalExpenses += entry.expense;
+        });
+        
+        const balance = totalIncome - totalExpenses;
+        
+        // Update summary values
+        totalIncomeElement.textContent = `$${totalIncome.toFixed(2)}`;
+        totalExpensesElement.textContent = `$${totalExpenses.toFixed(2)}`;
+        balanceElement.textContent = `$${balance.toFixed(2)}`;
+        
+        // Apply color to balance based on value
+        if (balance > 0) {
+            balanceElement.className = 'summary-value balance positive';
+        } else if (balance < 0) {
+            balanceElement.className = 'summary-value balance negative';
+        } else {
+            balanceElement.className = 'summary-value balance';
+        }
+        
+        return { labels, incomeData, expenseData };
+    }
+    
+    // Render or update chart
+    function renderChart(period) {
+        const { labels, incomeData, expenseData } = aggregateDataByPeriod(period);
+        
+        const ctx = document.getElementById('analytics-chart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (chart) {
+            chart.destroy();
+        }
+        
+        // Create new chart
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: incomeData,
+                        borderColor: '#2e7d32',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Expenses',
+                        data: expenseData,
+                        borderColor: '#c62828',
+                        backgroundColor: 'rgba(198, 40, 40, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.raw.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Update active button
+        document.querySelectorAll('.period-selector .toggle-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        switch(period) {
+            case 'week':
+                weekBtn.classList.add('active');
+                break;
+            case 'month':
+                monthBtn.classList.add('active');
+                break;
+            case 'year':
+                yearBtn.classList.add('active');
+                break;
+            case 'all':
+                allTimeBtn.classList.add('active');
+                break;
+        }
+    }
+    
+    // Event Listeners
+    weekBtn.addEventListener('click', () => renderChart('week'));
+    monthBtn.addEventListener('click', () => renderChart('month'));
+    yearBtn.addEventListener('click', () => renderChart('year'));
+    allTimeBtn.addEventListener('click', () => renderChart('all'));
+    window.addEventListener('resize', function() {
+        if (chart) {
+          chart.resize();
+        }
+    });
+      
+    // Force initial layout
+    setTimeout(function() {
+        if (chart) {
+          chart.resize();
+        }
+    }, 500);
+});
