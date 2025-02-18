@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" defer></script>
 </head>
 <body>
     <div class="navigation-links no-print">
         <a href="index.html"><button>Back to Tracker</button></a>
         <a href="analytics.html"><button>View Analytics</button></a>
-        <button onclick="window.print()">Print Ledger</button>
     </div>
 
     <div class="ledger-container">
@@ -29,6 +29,11 @@
                 <select id="category-filter">
                     <option value="all">All Categories</option>
                 </select>
+                <div class="account-selector">
+                    <button id="all-accounts-btn" class="account-btn active">All Accounts</button>
+                    <button id="cash-account-btn" class="account-btn">Cash Account</button>
+                    <button id="bank-account-btn" class="account-btn">Bank Account</button>
+                </div>
             </div>
         </div>
 
@@ -38,7 +43,7 @@
                     <th>Date</th>
                     <th>Description</th>
                     <th>Category</th>
-                    <th>Reference</th>
+                    <th>Account</th>
                     <th>Debit (₹)</th>
                     <th>Credit (₹)</th>
                     <th>Balance (₹)</th>
@@ -46,6 +51,11 @@
             </thead>
             <tbody id="ledger-body"></tbody>
         </table>
+
+        <div class="ledger-export no-print">
+            <button id="export-pdf-btn">Export as PDF</button>
+            <button id="export-csv-btn">Export as CSV</button>
+        </div>
     </div>
 </body>
 </html>

@@ -1,3 +1,4 @@
+// index.html
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const nameInput = document.getElementById('name');
@@ -14,18 +15,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const incomeButton = document.getElementById('income-btn');
     const expenseButton = document.getElementById('expense-btn');
     const filterCategorySelect = document.getElementById('filter-category');
+    const cashAccountBtn = document.getElementById('cash-account-btn');
+    const bankAccountBtn = document.getElementById('bank-account-btn');
     
     // Set default date to today
     dateInput.valueAsDate = new Date();
     
+    // Current account type (default: cash)
+    let currentAccount = 'cash';
+    
     // Categories
     const incomeCategories = ['Salary', 'Freelance', 'Investments', 'Gifts', 'Other Income'];
     const expenseCategories = ['Food', 'Housing', 'Transportation', 'Entertainment', 'Utilities', 'Healthcare', 'Clothing', 'Education', 'Personal Care', 'Other Expenses'];
+    const transferTypes = ['Transfer to Bank', 'Transfer to Cash'];
     
     // Initialize category selects
     function updateCategoryOptions() {
         categorySelect.innerHTML = '';
-        const categories = typeSelect.value === 'income' ? incomeCategories : expenseCategories;
+        let categories;
+        
+        if (typeSelect.value === 'income') {
+            categories = incomeCategories;
+        } else if (typeSelect.value === 'expense') {
+            categories = expenseCategories;
+        } else if (typeSelect.value === 'transfer') {
+            // Show appropriate transfer option based on current account
+            categories = currentAccount === 'cash' ? ['Transfer to Bank'] : ['Transfer to Cash'];
+        }
         
         categories.forEach(category => {
             const option = document.createElement('option');
@@ -39,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function initFilterCategories() {
         filterCategorySelect.innerHTML = '<option value="all">All Categories</option>';
         
-        const allCategories = [...incomeCategories, ...expenseCategories];
+        const allCategories = [...incomeCategories, ...expenseCategories, ...transferTypes];
         allCategories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
@@ -48,10 +64,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Update type options to include transfer
+    function updateTypeOptions() {
+        // Clear existing options
+        while (typeSelect.options.length > 0) {
+            typeSelect.remove(0);
+        }
+        
+        // Add options
+        const types = ['expense', 'income', 'transfer'];
+        types.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            typeSelect.appendChild(option);
+        });
+    }
+    
+    // Switch active account
+    function switchAccount(accountType) {
+        currentAccount = accountType;
+        
+        // Update UI
+        cashAccountBtn.classList.toggle('active', accountType === 'cash');
+        bankAccountBtn.classList.toggle('active', accountType === 'bank');
+        
+        // Update type options (ensure transfer is available)
+        updateTypeOptions();
+        
+        // If transfer is selected, update category options
+        if (typeSelect.value === 'transfer') {
+            updateCategoryOptions();
+        }
+        
+        // Reload transactions for the selected account
+        DB.renderTransactions();
+        DB.calculateSummary();
+    }
+    
     // Initialization
+    updateTypeOptions();
     updateCategoryOptions();
     initFilterCategories();
     typeSelect.addEventListener('change', updateCategoryOptions);
+    
+    // Event listeners for account buttons
+    cashAccountBtn.addEventListener('click', () => switchAccount('cash'));
+    bankAccountBtn.addEventListener('click', () => switchAccount('bank'));
     
     // Database operations with Firebase
     const DB = {
@@ -70,10 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         init: function() {
             // Initialize Firebase
-            firebase.initializeApp(this.firebaseConfig);
+            if (!firebase.apps.length) {
+                firebase.initializeApp(this.firebaseConfig);
+            }
             this.database = firebase.database();
             
-            // Show loading indicator (optional)
+            // Show loading indicator
             const loadingMessage = document.createElement('div');
             loadingMessage.id = 'loading-message';
             loadingMessage.textContent = 'Loading your transactions...';
@@ -104,12 +165,50 @@ document.addEventListener('DOMContentLoaded', function() {
             // Generate a unique ID
             transaction.id = this.database.ref().child('transactions').push().key;
             
-            // Save to Firebase
-            this.database.ref('transactions/' + transaction.id).set(transaction)
-                .catch(error => {
-                    console.error("Error adding transaction:", error);
-                    alert("Failed to add transaction. Please check your internet connection.");
-                });
+            // Handle transfer transactions
+            if (transaction.type === 'transfer') {
+                // Create a corresponding transaction for the other account
+                const otherAccountTransaction = {...transaction};
+                
+                if (transaction.account === 'cash' && transaction.category === 'Transfer to Bank') {
+                    // Cash -> Bank: Create a Bank Income transaction
+                    otherAccountTransaction.account = 'bank';
+                    otherAccountTransaction.type = 'income';
+                    otherAccountTransaction.category = 'Transfer from Cash';
+                    
+                    // Original transaction remains an expense for cash
+                    transaction.type = 'expense';
+                } else if (transaction.account === 'bank' && transaction.category === 'Transfer to Cash') {
+                    // Bank -> Cash: Create a Cash Income transaction
+                    otherAccountTransaction.account = 'cash';
+                    otherAccountTransaction.type = 'income';
+                    otherAccountTransaction.category = 'Transfer from Bank';
+                    
+                    // Original transaction remains an expense for bank
+                    transaction.type = 'expense';
+                }
+                
+                // Generate a new ID for the corresponding transaction
+                otherAccountTransaction.id = this.database.ref().child('transactions').push().key;
+                
+                // Save both transactions
+                const updates = {};
+                updates['/transactions/' + transaction.id] = transaction;
+                updates['/transactions/' + otherAccountTransaction.id] = otherAccountTransaction;
+                
+                this.database.ref().update(updates)
+                    .catch(error => {
+                        console.error("Error adding transfer transactions:", error);
+                        alert("Failed to add transfer. Please check your internet connection.");
+                    });
+            } else {
+                // Save regular transaction
+                this.database.ref('transactions/' + transaction.id).set(transaction)
+                    .catch(error => {
+                        console.error("Error adding transaction:", error);
+                        alert("Failed to add transaction. Please check your internet connection.");
+                    });
+            }
         },
         
         updateTransaction: function(id, updatedTransaction) {
@@ -141,6 +240,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Filter transactions
             let filteredTransactions = [...this.transactions];
             
+            // Filter by account type first
+            filteredTransactions = filteredTransactions.filter(t => t.account === currentAccount);
+            
             if (currentFilter === 'income-btn') {
                 filteredTransactions = filteredTransactions.filter(t => t.type === 'income');
             } else if (currentFilter === 'expense-btn') {
@@ -159,13 +261,21 @@ document.addEventListener('DOMContentLoaded', function() {
             filteredTransactions.forEach(transaction => {
                 const row = document.createElement('tr');
                 
-                // Format amount with $ and correct color
+                // Format amount with ₹ and correct color
                 const amountFormatted = `₹${parseFloat(transaction.amount).toFixed(2)}`;
-                const amountClass = transaction.type === 'income' ? 'income' : 'expense';
+                let amountClass;
+                if (transaction.type === 'income') {
+                    amountClass = 'income';
+                } else if (transaction.type === 'expense') {
+                    amountClass = 'expense';
+                } else if (transaction.type === 'transfer') {
+                    // For transfers, we set color based on whether money is coming in or going out
+                    amountClass = transaction.category.includes('from') ? 'income' : 'expense';
+                }
                 
                 row.innerHTML = `
                     <td>${transaction.name}</td>
-                    <td class="${amountClass}">${transaction.type === 'income' ? amountFormatted : `-${amountFormatted}`}</td>
+                    <td class="${amountClass}">${transaction.type === 'income' || transaction.category.includes('from') ? amountFormatted : `-${amountFormatted}`}</td>
                     <td>${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</td>
                     <td>${transaction.category}</td>
                     <td>${new Date(transaction.date).toLocaleDateString()}</td>
@@ -191,10 +301,13 @@ document.addEventListener('DOMContentLoaded', function() {
             let totalIncome = 0;
             let totalExpenses = 0;
             
-            this.transactions.forEach(transaction => {
+            // Filter by current account
+            const accountTransactions = this.transactions.filter(t => t.account === currentAccount);
+            
+            accountTransactions.forEach(transaction => {
                 if (transaction.type === 'income') {
                     totalIncome += parseFloat(transaction.amount);
-                } else {
+                } else if (transaction.type === 'expense') {
                     totalExpenses += parseFloat(transaction.amount);
                 }
             });
@@ -230,13 +343,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Create transaction object
+        // Create transaction object with account type
         const transaction = {
             name,
             amount,
             type,
             category,
-            date
+            date,
+            account: currentAccount
         };
         
         // Add to database
@@ -256,6 +370,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const transaction = DB.transactions.find(t => t.id === id);
         
         if (transaction) {
+            // Switch to the appropriate account before editing
+            if (transaction.account !== currentAccount) {
+                switchAccount(transaction.account);
+            }
+            
             // Fill form with transaction data
             nameInput.value = transaction.name;
             amountInput.value = transaction.amount;
@@ -277,7 +396,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     amount: amountInput.value,
                     type: typeSelect.value,
                     category: categorySelect.value,
-                    date: dateInput.value
+                    date: dateInput.value,
+                    account: currentAccount
                 };
                 
                 // Validation
@@ -307,6 +427,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleDelete(e) {
         const id = e.target.dataset.id;
+        const transaction = DB.transactions.find(t => t.id === id);
+        
+        if (transaction && transaction.type === 'transfer') {
+            alert('Transfer transactions cannot be deleted individually.');
+            return;
+        }
+        
         if (confirm('Are you sure you want to delete this transaction?')) {
             DB.deleteTransaction(id);
         }
@@ -334,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
     DB.init();
 });
 
+// analytics.html
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const totalIncomeElement = document.getElementById('total-income');
@@ -693,12 +821,29 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTransactions();
 });
 
+//ledger.html
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const categoryFilter = document.getElementById('category-filter');
     const ledgerBody = document.getElementById('ledger-body');
+    const ledgerIncomeElement = document.getElementById('ledger-income');
+    const ledgerExpensesElement = document.getElementById('ledger-expenses');
+    const ledgerBalanceElement = document.getElementById('ledger-balance');
+    const collapseAllBtn = document.getElementById('collapse-all-btn');
+    const expandAllBtn = document.getElementById('expand-all-btn');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const allAccountsBtn = document.getElementById('all-accounts-btn');
+    const cashAccountBtn = document.getElementById('cash-account-btn');
+    const bankAccountBtn = document.getElementById('bank-account-btn');
+    
+    // Current account filter
+    let currentAccountFilter = 'all';
+    
+    // Current expanded/collapsed state
+    let expandedMonths = new Set();
     
     // Initialize Firebase
     const firebaseConfig = {
@@ -712,21 +857,15 @@ document.addEventListener('DOMContentLoaded', function() {
         measurementId: "G-MSH6H75HT3"
     };
     
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {firebase.initializeApp(firebaseConfig);}
     const database = firebase.database();
     
     // Helper Functions
     function formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-        });
-    }
+        return new Date(dateString).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: '2-digit'});}
     
     function formatCurrency(amount) {
-        return parseFloat(amount).toFixed(2);
-    }
+        return parseFloat(amount).toFixed(2);}
     
     // Initialize date range (current month)
     function initializeDateRange() {
@@ -753,31 +892,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Create monthly summary row
-    function createMonthlySummaryRow(month, debit, credit, balance) {
+    function createMonthlySummaryRow(month, debit, credit, balance, transactionCount) {
         const row = document.createElement('tr');
         row.className = 'period-summary';
+        row.dataset.month = month;
+        
+        const isExpanded = expandedMonths.has(month);
+        
         row.innerHTML = `
-            <td colspan="4">${month} Summary</td>
+            <td colspan="4">
+                <button class="toggle-month-btn" data-month="${month}">
+                    <span class="toggle-icon">${isExpanded ? '−' : '+'}</span>
+                    ${month} (${transactionCount} transaction${transactionCount !== 1 ? 's' : ''})
+                </button>
+            </td>
             <td class="debit">₹${formatCurrency(debit)}</td>
             <td class="credit">₹${formatCurrency(credit)}</td>
-            <td class="running-balance">₹${formatCurrency(balance)}</td>
+            <td class="running-balance" colspan="2">₹${formatCurrency(balance)}</td>
         `;
+
         return row;
     }
     
     // Create transaction row
     function createTransactionRow(transaction, runningBalance) {
         const row = document.createElement('tr');
+        row.className = 'transaction-row';
+        row.dataset.month = new Date(transaction.date)
+            .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        if (!expandedMonths.has(row.dataset.month)) {
+            row.style.display = 'none';
+        }
+        
         row.innerHTML = `
             <td>${formatDate(transaction.date)}</td>
             <td>${transaction.name}</td>
             <td>${transaction.category}</td>
-            <td>${transaction.id.slice(-6)}</td>
+            <td>${transaction.account || 'Cash'}</td>
             <td class="debit">${transaction.type === 'expense' ? '₹' + formatCurrency(transaction.amount) : ''}</td>
             <td class="credit">${transaction.type === 'income' ? '₹' + formatCurrency(transaction.amount) : ''}</td>
             <td class="running-balance">₹${formatCurrency(runningBalance)}</td>
         `;
         return row;
+    }
+    
+    // funtion to toggle transactions
+    function toggleTransactions(id) {
+        let row = document.getElementById(id);
+        row.style.display = row.style.display === "none" ? "table-row" : "none";
     }
     
     // Update ledger with filtered data
@@ -786,9 +949,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const endDate = new Date(endDateInput.value);
         const selectedCategory = categoryFilter.value;
         
+        // Reset monthly data
+        monthlyData = {};
+        
         database.ref('transactions').orderByChild('date').once('value', (snapshot) => {
             const transactions = [];
             let runningBalance = 0;
+            let totalIncome = 0;
+            let totalExpenses = 0;
             
             // Filter and sort transactions
             snapshot.forEach((childSnapshot) => {
@@ -796,8 +964,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 transaction.id = childSnapshot.key;
                 const transactionDate = new Date(transaction.date);
                 
-                if (transactionDate >= startDate && transactionDate <= endDate &&
-                    (selectedCategory === 'all' || transaction.category === selectedCategory)) {
+                // Apply filters
+                const matchesDate = transactionDate >= startDate && transactionDate <= endDate;
+                const matchesCategory = selectedCategory === 'all' || transaction.category === selectedCategory;
+                const matchesAccount = currentAccountFilter === 'all' || 
+                                     (currentAccountFilter === 'cash' && (!transaction.account || transaction.account === 'cash')) ||
+                                     (currentAccountFilter === 'bank' && transaction.account === 'bank');
+                
+                if (matchesDate && matchesCategory && matchesAccount) {
                     transactions.push(transaction);
                 }
             });
@@ -811,6 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let currentMonth = '';
             let monthlyDebit = 0;
             let monthlyCredit = 0;
+            let monthlyTransactions = 0;
             
             // Process transactions
             transactions.forEach((transaction) => {
@@ -821,29 +996,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (transactionMonth !== currentMonth) {
                     if (currentMonth !== '') {
                         ledgerBody.appendChild(
-                            createMonthlySummaryRow(currentMonth, monthlyDebit, monthlyCredit, runningBalance)
+                            createMonthlySummaryRow(currentMonth, monthlyDebit, monthlyCredit, runningBalance, monthlyTransactions)
                         );
                     }
                     
                     // Reset monthly totals
                     monthlyDebit = 0;
                     monthlyCredit = 0;
+                    monthlyTransactions = 0;
                     currentMonth = transactionMonth;
-                    
-                    // Add month header
-                    const monthHeader = document.createElement('tr');
-                    monthHeader.innerHTML = `<td colspan="7"><strong>${transactionMonth}</strong></td>`;
-                    ledgerBody.appendChild(monthHeader);
                 }
                 
                 // Update balances
                 if (transaction.type === 'income') {
                     runningBalance += parseFloat(transaction.amount);
                     monthlyCredit += parseFloat(transaction.amount);
+                    totalIncome += parseFloat(transaction.amount);
                 } else {
                     runningBalance -= parseFloat(transaction.amount);
                     monthlyDebit += parseFloat(transaction.amount);
+                    totalExpenses += parseFloat(transaction.amount);
                 }
+                
+                monthlyTransactions++;
                 
                 // Add transaction row
                 ledgerBody.appendChild(createTransactionRow(transaction, runningBalance));
@@ -852,16 +1027,76 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add final month summary
             if (currentMonth !== '') {
                 ledgerBody.appendChild(
-                    createMonthlySummaryRow(currentMonth, monthlyDebit, monthlyCredit, runningBalance)
+                    createMonthlySummaryRow(currentMonth, monthlyDebit, monthlyCredit, runningBalance, monthlyTransactions)
                 );
             }
+            
+            // Update summary
+            ledgerIncomeElement.textContent = `₹${formatCurrency(totalIncome)}`;
+            ledgerExpensesElement.textContent = `₹${formatCurrency(totalExpenses)}`;
+            ledgerBalanceElement.textContent = `₹${formatCurrency(totalIncome - totalExpenses)}`;
         });
+    }
+        
+    // Export to CSV
+    function exportToCSV() {
+        const rows = [
+            ['Date', 'Description', 'Category', 'Account', 'Reference', 'Debit', 'Credit', 'Balance']
+        ];
+        
+        document.querySelectorAll('.transaction-row').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            rows.push([
+                cells[0].textContent,
+                cells[1].textContent,
+                cells[2].textContent,
+                cells[3].textContent,
+                cells[4].textContent,
+                cells[5].textContent.replace('₹', ''),
+                cells[6].textContent.replace('₹', ''),
+                cells[7].textContent.replace('₹', '')
+            ]);
+        });
+        
+        let csvContent = "data:text/csv;charset=utf-8," 
+            + rows.map(e => e.join(",")).join("\n");
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `ledger_export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Export to PDF
+    function exportToPDF() {
+        window.print();
+    }
+    
+    // Switch account filter
+    function switchAccountFilter(account) {
+        currentAccountFilter = account;
+        
+        // Update active button
+        allAccountsBtn.classList.toggle('active', account === 'all');
+        cashAccountBtn.classList.toggle('active', account === 'cash');
+        bankAccountBtn.classList.toggle('active', account === 'bank');
+        
+        // Update ledger
+        updateLedger();
     }
     
     // Event listeners
     startDateInput.addEventListener('change', updateLedger);
     endDateInput.addEventListener('change', updateLedger);
     categoryFilter.addEventListener('change', updateLedger);
+    exportCsvBtn.addEventListener('click', exportToCSV);
+    exportPdfBtn.addEventListener('click', exportToPDF);
+    allAccountsBtn.addEventListener('click', () => switchAccountFilter('all'));
+    cashAccountBtn.addEventListener('click', () => switchAccountFilter('cash'));
+    bankAccountBtn.addEventListener('click', () => switchAccountFilter('bank'));
     
     // Initialize
     initializeDateRange();
@@ -987,10 +1222,24 @@ function deleteCategory(type, category) {
 }
 
 function toggleDarkMode() {
-    const darkMode = document.getElementById('dark-mode').checked;
-    document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('darkMode', darkMode);
+    document.body.classList.toggle('dark-mode');
+    // Optionally save preference to localStorage
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode);
 }
+
+// Load saved preference on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+        document.body.classList.add('dark-mode');
+        // Update checkbox in settings if on settings page
+        const darkModeCheckbox = document.getElementById('dark-mode');
+        if (darkModeCheckbox) {
+            darkModeCheckbox.checked = true;
+        }
+    }
+});
 
 function exportData() {
     database.ref('transactions').once('value', (snapshot) => {

@@ -12,6 +12,12 @@
 <body>
     <h1>Finance Tracker</h1>
 
+    <div class="account-selector">
+        <button id="cash-account-btn" class="account-btn active">Cash Account</button>
+        <button id="bank-account-btn" class="account-btn">Bank Account</button>
+    </div>
+
+
     <div class="summary">
         <div class="summary-item">
             <div>Total Income</div>
@@ -29,11 +35,11 @@
     <br>
 
     <!-- Add this code immediately after the summary div in your index.html file -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <a href="analytics.html"><button style="background-color: #1565c0;">View Analytics</button></a>
-        <a href="ledger.html"><button style="background-color: #1565c0;">View Ledger</button></a>
-        <a href="settings.html"><button style="background-color: #1565c0;">View Settings</button></a>
-    </div>
+    <div class="button-nav">
+        <a href="analytics.html"><button>View Analytics</button></a>
+        <a href="ledger.html"><button>View Ledger</button></a>
+        <a href="settings.html"><button>View Settings</button></a>
+      </div>
 
 
     <div class="form-container">
