@@ -17,7 +17,6 @@
         <button id="bank-account-btn" class="account-btn">Bank Account</button>
     </div>
 
-
     <div class="summary">
         <div class="summary-item">
             <div>Total Income</div>
@@ -38,7 +37,6 @@
     <div class="button-nav">
         <a href="analytics.html"><button>View Analytics</button></a>
         <a href="ledger.html"><button>View Ledger</button></a>
-        <a href="settings.html"><button>View Settings</button></a>
       </div>
 
 
@@ -85,22 +83,24 @@
             </select>
         </div>
     </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Type</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="transactions-tbody">
-            <!-- Transactions will be inserted here dynamically -->
-        </tbody>
-    </table>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="transactions-tbody">
+                <!-- Transactions will be inserted here dynamically -->
+            </tbody>
+        </table>
+    </div>
     
    
 
